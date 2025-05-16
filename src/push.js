@@ -7,6 +7,10 @@ let WX_PUSHER_APP_TOKEN = process.env.WX_PUSHER_APP_TOKEN;
 let telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 let telegramBotId = process.env.TELEGRAM_CHAT_ID;
 
+// 新增两个 PushPlus Token
+let pushPlusToken1 = process.env.PUSH_PLUS_TOKEN1;
+let pushPlusToken2 = process.env.PUSH_PLUS_TOKEN2;
+
 const pushTelegramBot = (title, desp) => {
   if (!(telegramBotToken && telegramBotId)) {
     return;
@@ -16,20 +20,20 @@ const pushTelegramBot = (title, desp) => {
     text: `${title}\n\n${desp}`,
   };
   superagent
-  .post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`)
-  .type("form")
-  .send(data)
-  .timeout(3000)
-  .then((res) => {
-    if (res.body?.ok) {
-      logger.info("TelegramBot推送成功");
-    } else {
-      logger.error(`TelegramBot推送失败:${JSON.stringify(res.body)}`);
-    }
-  })
-  .catch((err) => {
-    logger.error(`TelegramBot推送失败:${err}`);
-  });
+    .post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`)
+    .type("form")
+    .send(data)
+    .timeout(3000)
+    .then((res) => {
+      if (res.body?.ok) {
+        logger.info("TelegramBot推送成功");
+      } else {
+        logger.error(`TelegramBot推送失败:${JSON.stringify(res.body)}`);
+      }
+    })
+    .catch((err) => {
+      logger.error(`TelegramBot推送失败:${err}`);
+    });
 };
 
 const pushWxPusher = (title, desp) => {
@@ -61,9 +65,44 @@ const pushWxPusher = (title, desp) => {
     });
 };
 
+const pushPushPlus = (title, desp) => {
+  // 定义一个函数来推送单个 token
+  const pushToToken = (token) => {
+    if (!token) {
+      return;
+    }
+    const data = {
+      token: token,
+      title: title,
+      content: desp,
+      template: "html", // 可选：json/html，默认是html
+    };
+    superagent
+      .post("https://www.pushplus.plus/send")
+      .type("form")
+      .send(data)
+      .timeout(3000)
+      .then((res) => {
+        if (res.body?.code === 200) {
+          logger.info(`PushPlus(${token})推送成功`);
+        } else {
+          logger.error(`PushPlus(${token})推送失败:${JSON.stringify(res.body)}`);
+        }
+      })
+      .catch((err) => {
+        logger.error(`PushPlus(${token})推送失败:${err}`);
+      });
+  };
+
+  // 分别推送两个 token
+  pushToToken(pushPlusToken1);
+  pushToToken(pushPlusToken2);
+};
+
 const push = (title, desp) => {
   pushWxPusher(title, desp);
   pushTelegramBot(title, desp);
+  pushPushPlus(title, desp);
 };
 
 exports.push = push;
